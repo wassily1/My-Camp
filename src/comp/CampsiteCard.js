@@ -9,7 +9,7 @@ const { Meta } = Card;
 
 const CampsiteCard = ({ campsite }) => {
   return (
-    <Link to={`/campsite/${campsite._id}`}>
+    <Link to={`/campsite/${campsite.campId}`}>
         <Card
         hoverable
         style={{ width: 320,marginBottom:50}}

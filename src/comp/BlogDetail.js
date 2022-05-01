@@ -1,9 +1,10 @@
-import React from 'react'
+import React, { useState,useEffect} from 'react'
 import '../css/homepage.css';
 import { Card } from 'antd';
 import 'antd/dist/antd.css'; 
 
 import { Layout, Menu, Breadcrumb,Avatar,Button,PageHeader,Typography  } from 'antd';
+import { StarOutlined  } from '@ant-design/icons';
 import { Row, Col } from 'antd';
 import { useLocation,useParams  } from "react-router-dom";
 import blogs from '../data/blogs'
@@ -14,33 +15,62 @@ const { Title, Paragraph, Text, Link  } = Typography;
 const { Component } = require("react");
 const { Meta } = Card;
 
+async function findblogById(id) {
+  const query = `query getById($id:Int) {
+      blogById(id: $id) {
+        id title author_id author_name author_img intro content tags posted
+      }
+    }
+  `;
+  const byId = {id:id}
+  const data = await graphQLFetch(query,byId);
+  console.log(data)
+  return data;
+}
 
+async function collectAdd(collection) {
+	const query1 = `mutation collectionAdd($id:Int,$user_email:String,$user_name:String,,
+    $user_img:String,$blogid:Int)
+    {
+      collectionAdd(id:$id,user_email: $user_email,user_name:$user_name,user_img:$user_img,
+      blogid:$blogid
+    ) {
+        id user_email user_name user_img blogid
+      }
+    }
+    `;
+    const data = await graphQLFetch(query1,collection);
+    if (data) {
+      alert('Add successfully')
+    }
+}
 
-// export default class BlogDetail extends Component
 const BlogDetail = () =>{
 	const params = useParams()
-  const blog = blogs.find((c) => c.id === params.id) 
-  console.log(blog)
-  // const numRoom = campsite.countAvailable
+	const blogid=params.id.toString()
+  const [blog,setBlog] = useState('')
 
-	// state = {
-	// 		id:0,
- //      data: []
- //    };
- // 	constructor(props){
- //        super(props);
- //    }
+  const setblog= async()=>{
+    let response = await findblogById(blogid)
+    console.log(response)
+    setBlog(response['blogById'][0])
+  }
 
- //  componentDidMount() {
- //      // this.setState({ id: this.props.location.state})
-
-	// 		console.log(this.props.params);
- //  }
- //    // fetching the GET route from the Express server which matches the GET route from server.js
- 
-	// render(){
-	// // const location = useLocation();
-	// // 	console.log(location, " useLocation Hook");
+  const collect= async()=>{
+  	const collection={
+  		user_email:localStorage.getItem("email"),
+  		user_name:localStorage.getItem("name"),
+  		user_img:localStorage.getItem("profileimg"),
+  		blogid:blogid
+  	}
+  	console.log(collection)
+    let response = await collectAdd(collection)
+    console.log(response)
+  }
+  
+  useEffect( () => {
+    setblog();
+  }, []);
 
 		return(
 <div style={{height:1000,padding: '0 50px',marginTop:'3%'}}>
@@ -49,24 +79,21 @@ const BlogDetail = () =>{
 		<Row>
           <Col span={6}>
               
-            <Card hoverable style={{ width: '50%', height:150, marginBottom:50 }}>
-                <Meta title='Title' description="Intro..." />
-            </Card>
+
           </Col>
           <Col span={12}>
 <PageHeader
 		      ghost={false}
 		      onBack={() => window.history.back()}
 		      title={blog.title}
-		      subTitle="subtitle"
-		      avatar={{ src: 'https://avatars1.githubusercontent.com/u/8186664?s=460&v=4' }}
-		      extra={[
-		        <Button key="3">Operation</Button>,
-		        <Button key="2">Operation</Button>,
-		        <Button key="1" type="primary">
-		          Primary
-		        </Button>,
-		      ]}
+		      subTitle={'by',blog.author_name}
+		      avatar={{ src: blog.author_img }}
+		      extra={[<Button key="1" type="primary" size='large'icon={<StarOutlined /> }
+		      onClick={ async() =>  collect()}
+		      >
+          Collect
+        </Button>]}
+        	
 		    >
 		    
 		    <Paragraph>
@@ -88,9 +115,7 @@ const BlogDetail = () =>{
           <Col span={1}>
           </Col>
           <Col span={5}>
-          <Card hoverable style={{ width: '60%', height:150, marginBottom:50,}}>
-                <Meta title="Title" description="Intro..." />
-            </Card>
+
           </Col>
 
         </Row>
@@ -101,5 +126,28 @@ const BlogDetail = () =>{
 	// }
 
 }
-
 export default BlogDetail;
+async function graphQLFetch(query, variables = {}) {
+  try {
+    const response = await fetch('http://localhost:8000/graphql', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json'},
+      body: JSON.stringify({ query, variables })
+    });
+    const body = await response.text();
+    const result = JSON.parse(body);
+
+    if (result.errors) {
+      const error = result.errors[0];
+      if (error.extensions.code === 'BAD_USER_INPUT') {
+        const details = error.extensions.exception.errors.join('\n ');
+        alert(`${error.message}:\n ${details}`);
+      } else {
+        alert(`${error.extensions.code}: ${error.message}`);
+      }
+    }
+    return result.data;
+  } catch (e) {
+    alert(`Error in sending data to server: ${e.message}`);
+  }
+}

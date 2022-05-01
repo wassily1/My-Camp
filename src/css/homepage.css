@@ -39,11 +39,16 @@ nav ul li a:hover {
 
 .homepage {
     text-align: center;
+    
+    left: 0;
+    width: 100%;
+    overflow: hidden;
     margin: 0;
     padding: 0;
     font-size: 40px;
     font-weight: bold;
     padding-top: 0%;
+    height:1000
 }
 
 .display{

@@ -14,81 +14,55 @@ const { Header, Content, Footer } = Layout;
 const { Option } = Select;
 
 
-async function findcampsiteById(campId) {
-  const query = `query getById($campId:String) {
-      campsiteById(campId: $campId) {
-        campId name image description category price countAvailable rating numReview tags
+async function findactivityById(id) {
+  const query = `query getById($id:Int) {
+      activityById(id: $id) {
+        id title host_email host_name host_img name phoneNum camp_address camp_num date
       }
     }
   
   `;
-  const bycampId = {campId:campId}
-  const campdata = await graphQLFetch(query,bycampId);
-
-  let tags= campdata['campsiteById'][0].tags
-  const query1 = `query getByTags($tags:[String]) {
-      blogByTags(tags: $tags) {
-        title intro author_name posted
-      }
-    }
-  `;
-  const byTags = {tags:tags}
-  const blogdata = await graphQLFetch(query1,byTags);
-
-  // return data['campsiteById'][0];
-  return {
-    campdata:campdata['campsiteById'][0],
-    blogdata:blogdata['blogByTags']
-  }
+  const byId = {id:id}
+  const data = await graphQLFetch(query,byId);
+  return data['activityById'][0]
 }
 
-async function findblogByTags(tags) {
-  const query = `query getByTags($tags:[String]) {
-      blogByTags(tags: $tags) {
-        title intro author_name posted
-      }
-    }
-  `;
-  const byTags = {tags:tags}
-  const data = await graphQLFetch(query,byTags);
-  return data;
-}
 
-async function Addorder(order) {
-  const query1 = `mutation orderAdd($email: String,$campId:String,$name:String,$date:GraphQLDate,
-      $phoneNum:String,$numCamp:Int)
+async function AddAorder(Aorder) {
+  const query1 = `mutation AorderAdd($Aid: Int,$my_email:String,$title:String,$name: String,
+    $camp_address:String,$date: GraphQLDate,$host_email:String,$phoneNum: String,$myname:String,$myphoneNum:String,$peopleNum:Int)
   {
-    orderAdd(email: $email,campId:$campId,name:$name,date:$date,phoneNum:$phoneNum,numCamp:$numCamp
+    AorderAdd(Aid: $Aid,my_email:$my_email,title:$title,name:$name,camp_address:$camp_address,date:$date,
+    host_email:$host_email,phoneNum:$phoneNum,myname:$myname,myphoneNum:$myphoneNum,peopleNum:$peopleNum
   ) {
-      email campId name date phoneNum numCamp
+      Aid my_email title name camp_address date host_email phoneNum myname myphoneNum peopleNum
     }
   }
   `;
-  const data = await graphQLFetch(query1,order);
+  const data = await graphQLFetch(query1,Aorder);
   if (data) {
     alert('Add successfully')
   }
 } 
 
-const CampsitePage = () => {
-    const [campsite,setCampsite] = useState('')
+const ActivityPage = () => {
+    const [activity,setActivity] = useState('')
     const [blogs,setBlogs]=useState([])
     const params = useParams()
-    const campid=params.id.toString()
+    const id=params.id
 
-    const setcamp= async()=>{
-      let response = await findcampsiteById(campid)
-      console.log(response.campdata)
-      console.log(response.blogdata)
-      
+    const setactivity= async()=>{
+      let response = await findactivityById(id)
+      console.log(response)
+      setActivity(response)
       // let tags = response.tags
       // let response1 = await findblogByTags(tags)
       // let response1_s = JSON.stringify(response1)
       // console.log(response)
       // console.log(response1['blogByTags'][0])
       // // console.log(response1_s)
-      setCampsite(response.campdata)
-      setBlogs(response.blogdata)
+      // setCampsite(response.campdata)
+      // setBlogs(response.blogdata)
     }
     // const setblogs= async()=>{
     //   let response0 = await findcampsiteById(campid)
@@ -97,14 +71,12 @@ const CampsitePage = () => {
     //   setBlogs(response)
     // }
     useEffect( () => {
-        setcamp();
+        setactivity();
         // console.log(campsite)
         
     }, []);
 
-    console.log(blogs)
-
-    const numRoom = campsite.countAvailable
+    // const numRoom = campsite.countAvailable
     const [visible, setVisible] = React.useState(false);
     const [confirmLoading, setConfirmLoading] = React.useState(false);
     const [modalText, setModalText] = React.useState('Content of the modal');
@@ -116,10 +88,16 @@ const CampsitePage = () => {
     };
 
     const onFinish = (values: any) => {
-      values['campId']=campsite.campId
-      values['email']=localStorage.getItem('email')
+      values['Aid']=activity.id
+      values['my_email']=localStorage.getItem('email')
+      values['title']=activity.title
+      values['name']=activity.name
+      values['camp_address']=activity.camp_address
+      values['date']=activity.date
+      values['host_email']=activity.host_email
+      values['phoneNum']=activity.phoneNum
       console.log('Success:', values);
-      Addorder(values)
+      AddAorder(values)
       window.location.reload()
     };
 
@@ -144,7 +122,7 @@ const CampsitePage = () => {
 
     return (
     <>
-        <div style={{height:'100%',padding: '0 50px',marginTop:'2%'}}>
+        <div style={{height:1000,padding: '0 50px',marginTop:'2%'}}>
         
         <Row>
           <Col span={2}>
@@ -160,20 +138,26 @@ const CampsitePage = () => {
         <Card style={{backgroundColor:'white',marginTop:'0%'}}>
         <Row>
             <Col span={4}>
-                <Image src={campsite.image} height='400px' width='700px' />
+                <Image src={'/images/campsite3.jpeg'} height='400px' width='700px' />
             </Col>
             <Col span={12} offset={8}>
     <Descriptions size='middle' layout="vertical" contentStyle={{fontSize:22}} labelStyle={{fontSize:18,fontWeight:'bold'}}>
-    <Descriptions.Item label="Name" style={{fontSize:40}}>{campsite.name}</Descriptions.Item>
-    <Descriptions.Item label="Category">{campsite.category}</Descriptions.Item>
-    <Descriptions.Item label="Rating"><Rate disabled value={campsite.rating} /></Descriptions.Item>
-    <Descriptions.Item label="Price"> ${campsite.price} /Camp</Descriptions.Item>
-    <Descriptions.Item label="Description" span={2}>{campsite.description}</Descriptions.Item>
+    <Descriptions.Item label="Name" style={{fontSize:40}}>{activity.title}</Descriptions.Item>
+    <Descriptions.Item label="Address">{activity.camp_address}</Descriptions.Item>
+    {activity.length ===  0 ? 
+      <></>
+        :
+        <Descriptions.Item label="Date">{moment(parseInt(activity.date.getTime())).format("YYYY-MM-DD")}</Descriptions.Item>
+    }
+    
+    <Descriptions.Item label="Host Name"> {activity.host_name}</Descriptions.Item>
+    <Descriptions.Item label="Host Phone Number" >{activity.phoneNum}</Descriptions.Item>
+    <Descriptions.Item label="Number of camps" >{activity.camp_num}</Descriptions.Item>
     </Descriptions>
     <Button type="primary" size='large' style={{position:'absolute',right:40,bottom:0}}
     onClick={showModal}
     icon={<PlusOutlined/>}>
-          Reserve
+          Take Part In
         </Button>
     <Modal
         title="Title"
@@ -195,8 +179,8 @@ const CampsitePage = () => {
           >
           <Space direction="vertical" size={10}>
           <Form.Item
-            label="Your Name"
-            name="name"
+            label="Your name"
+            name="myname"
             rules={[{ required: true, message: 'Please input your name' }]}
           >
           <Input size="large"  />
@@ -204,7 +188,7 @@ const CampsitePage = () => {
 
           <Form.Item
             label="Phone Number"
-            name="phoneNum"
+            name="myphoneNum"
             rules={[{ required: true, message: 'Please input your phone number!' }]}
           >
           <Input size="large" />
@@ -212,17 +196,12 @@ const CampsitePage = () => {
 
           <Form.Item
             label="People Number"
-            name="numCamp"
+            name="peopleNum"
+            rules={[{ required: true, message: 'Please set the number of people!' }]}
           >
           <InputNumber size="large" min={0} max={20} defaultValue={0} onChange={handleChange}  />
           </Form.Item>
           
-          <Form.Item
-            label="Date"
-            name="date"
-          >
-          <DatePicker size="large" defaultValue={moment('2022/04/01', dateFormat)} format={dateFormat} />
-          </Form.Item>
           <Form.Item wrapperCol={{ offset: 8, span: 16 }}>
             <Button type="primary" htmlType="submit" size="large">
               Submit
@@ -239,61 +218,18 @@ const CampsitePage = () => {
         </Row>
         
           
-            
-        <Row style={{marginTop:'2%'}}>
-        <Col span={1}>
-        </Col>    
-        <Col span={9}>
-        <Divider orientation="left" style={{fontSize:25}}>Related Blogs</Divider>
-         {blogs.length ===  0 ? 
-               <Empty description={false} />
-            :
-            <>
-                {
-
-            blogs.map(
-                (item)=>
-                {
-                    return(
-            <Card hoverable headStyle={{textAlign:'center',fontSize:22,fontWeight:'bold'}} 
-            bodyStyle={{fontSize:18,textAlign:'left',fontWeight:600}}
-            // cover={<img alt="example" src="/images/campsite1.jpeg" />}
-            style={{ width: '100%', height:200, marginBottom:50}}
-            >
-            <Row>
-            <Col span={8}>
-            <img height='110%' width='85%' alt="example" src="/images/campsite1.jpeg" />     
-            </Col>   
-            <Col span={16}>
-            <a>{item.title}</a>
-            <p>{item.intro}</p>
-            <a style={{position:'absolute',right:'1%',bottom:'1%',fontSize:15,color:'grey',fontWeight:400}}>by {item.author_name}.</a>
-            </Col>
-            </Row>
-            </Card>
-                    )
-                }
-
-
-                )
-            }
-            </>
-            }
-        </Col>
-      </Row>
-        
-        
-
         </div>
-
-        
     </>
   )
 }
 
-export default CampsitePage
+export default ActivityPage
 
-
+const dateRegex = new RegExp('^\\d\\d\\d\\d-\\d\\d-\\d\\d');
+function jsonDateReviver(key, value) {
+  if (dateRegex.test(value)) return new Date(value);
+  return value;
+}
 async function graphQLFetch(query, variables = {}) {
   try {
     const response = await fetch('http://localhost:8000/graphql', {
@@ -302,7 +238,7 @@ async function graphQLFetch(query, variables = {}) {
       body: JSON.stringify({ query, variables })
     });
     const body = await response.text();
-    const result = JSON.parse(body);
+    const result = JSON.parse(body,jsonDateReviver);
 
     if (result.errors) {
       const error = result.errors[0];
